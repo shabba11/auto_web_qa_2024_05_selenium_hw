@@ -12,40 +12,8 @@ def pytest_addoption(parser):
     parser.addoption("--browser", default="chrome")
     parser.addoption("--drivers", default=os.path.expanduser("~/Downloads/drivers"))
     parser.addoption("--base-url", default="http://localhost:80")
-    parser.addoption("--url-catalog", default="http://localhost:80/en-gb/catalog")
-    parser.addoption("--url-product", default="http://localhost:80/en-gb/product")
-    # parser.addoption("--url-administration", default="http://localhost:80/administration")
-    parser.addoption("--url-registration", default="http://localhost:80/index.php?route=account/register")
     parser.addoption("--opencart-username", default="user")
     parser.addoption("--opencart-password", default="bitnami")
-
-
-# @pytest.fixture(scope="session")
-# def base_url(request):
-#     return request.config.getoption("--base-url")
-
-
-@pytest.fixture(scope="session")
-def url_catalog(request):
-    return request.config.getoption("--url-catalog")
-
-
-@pytest.fixture(scope="session")
-def url_product(request):
-    return request.config.getoption("--url-product")
-
-
-@pytest.fixture(scope="function")
-def add_new_product():
-    pass
-
-# def url_administration(request):
-#     return request.config.getoption("--url-administration")
-
-
-@pytest.fixture(scope="session")
-def url_registration(request):
-    return request.config.getoption("--url-registration")
 
 
 @pytest.fixture

@@ -1,7 +1,6 @@
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.by import By
 
 
 class BasePage:
@@ -21,8 +20,8 @@ class BasePage:
     def click(self, locator):
         ActionChains(self.browser).move_to_element(self.get_element(locator)).pause(0.3).click().perform()
 
-    def input_value(self, locator, text):
+    def input_value(self, locator, texts):
         self.get_element(locator).click()
         self.get_element(locator).clear()
-        for l in text:
-            self.get_element(locator).send_keys(l)
+        for text in texts:
+            self.get_element(locator).send_keys(text)

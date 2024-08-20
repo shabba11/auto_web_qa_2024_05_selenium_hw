@@ -24,16 +24,5 @@ class TestRegistration:
         RP(browser)
         BasePage(browser).get_element((By.ID, "input-newsletter"))
 
-    def test_registration_new_user(self, browser):
-        RP(browser)
-
-        BasePage(browser).input_value((By.ID, 'input-firstname'), texts='Test')
-        BasePage(browser).input_value((By.ID, "input-lastname"), texts='Test')
-        BasePage(browser).input_value((By.ID, "input-email"), texts='test@test.com')
-        BasePage(browser).input_value((By.ID, "input-password"), texts='test_password')
-
-        BasePage(browser).click((By.XPATH, '//*[@id="form-register"]/div/div/input'))
-        BasePage(browser).click((By.XPATH, '//*[@id="form-register"]/div/button'))
-
-        text_success = BasePage(browser).get_element((By.XPATH, '//*[@id="content"]/h1')).text
-        assert text_success == 'Your Account Has Been Created!'
+    def test_registration_new_user(self, browser, user_registration):
+        user_registration(firstname="Test", lastname="Test", e_mail="test1234@test.com", password="12345678Test")

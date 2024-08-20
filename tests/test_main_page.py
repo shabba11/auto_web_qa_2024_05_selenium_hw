@@ -34,7 +34,7 @@ class TestMainPage:
 
         old_prices = []
         for product in products:
-            old_prices.append(BasePage(product).get_element((By.CLASS_NAME, "price-new")).text)
+            old_prices.append(product.find_element(by=By.CLASS_NAME, value="price-new").text)
 
         BasePage(browser).get_element((By.CSS_SELECTOR, "div.dropdown")).click()
         BasePage(browser).get_element((By.XPATH, '//*[@id="form-currency"]/div/ul/li[1]/a')).click()
@@ -42,6 +42,6 @@ class TestMainPage:
         new_products = BasePage(browser).get_elements((By.CLASS_NAME, 'product-thumb'))
 
         for num, new_product in enumerate(new_products):
-            new_price = BasePage(new_product).get_element((By.CLASS_NAME, "price-new")).text
+            new_price = new_product.find_element(by=By.CLASS_NAME, value="price-new").text
             assert old_prices[num] != new_price
             assert new_price[-1] == '€'

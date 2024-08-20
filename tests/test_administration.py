@@ -62,7 +62,8 @@ class TestAdministration:
         BasePage(browser).click((By.XPATH, '//*[@id="form-product"]/div[2]/div[1]/ul/li[4]/a'))
         product = BasePage(
             browser).get_elements((By.CSS_SELECTOR, 'table.table.table-bordered.table-hover > tbody > tr'))[-1]
-        BasePage(product).get_element((By.CLASS_NAME, 'form-check-input')).click()
+        # BasePage(product).get_element((By.CLASS_NAME, 'form-check-input')).click()
+        product.find_element(by=By.CLASS_NAME, value='form-check-input').click()
         ActionChains(browser).move_to_element(
             browser.find_elements(By.XPATH, '//*[@id="content"]/div[1]/div/div/button')[-1]).click().perform()
         alert = browser.switch_to.alert

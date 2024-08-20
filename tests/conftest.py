@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from page_objects.administration_page import AdministrationPage as AP
 from page_objects.base_page import BasePage
 from selenium.webdriver.common.by import By
+from page_objects.registration_page import RegistrationPage as RP
 
 
 def pytest_addoption(parser):
@@ -59,3 +60,42 @@ def login_administration(request, browser):
     BasePage(browser).get_element((By.CSS_SELECTOR, "button.btn.btn-primary")).click()
 
     BasePage(browser).get_element((By.ID, "nav-profile"))
+
+
+@pytest.fixture(scope="function")
+def user_registration(request, browser):
+    emails = []
+
+    def registration(firstname, lastname, e_mail, password):
+        RP(browser)
+
+        BasePage(browser).input_value((By.ID, 'input-firstname'), texts=firstname)
+        BasePage(browser).input_value((By.ID, "input-lastname"), texts=lastname)
+        BasePage(browser).input_value((By.ID, "input-email"), texts=e_mail)
+        BasePage(browser).input_value((By.ID, "input-password"), texts=password)
+
+        BasePage(browser).click((By.XPATH, '//*[@id="form-register"]/div/div/input'))
+        BasePage(browser).click((By.XPATH, '//*[@id="form-register"]/div/button'))
+
+        BasePage(browser).get_element((By.PARTIAL_LINK_TEXT, 'Your Account Has Been Created!'))
+
+        emails.append(e_mail)
+
+    yield registration
+
+    browser.get(url=request.config.getoption("--base-url") + AP.URL_ADMINISTRATION)
+
+    username = BasePage(browser).get_element((By.ID, "input-username"))
+    username.send_keys(request.config.getoption("--opencart-username"))
+
+    password = BasePage(browser).get_element((By.ID, "input-password"))
+    password.send_keys(request.config.getoption("--opencart-password"))
+
+    BasePage(browser).get_element((By.CSS_SELECTOR, "button.btn.btn-primary")).click()
+    BasePage(browser).click((By.XPATH, '//*[@id="menu-customer"]'))
+    BasePage(browser).click((By.XPATH, '//*[@id="collapse-5"]/li[1]/a'))
+
+    BasePage(browser).click((By.XPATH, '//*[@id="form-customer"]/div[1]/table/thead/tr/td[1]/input'))
+    BasePage(browser).click((By.XPATH, '//*[@id="content"]/div[1]/div/div/button[2]'))
+
+    browser.switch_to.alert.accept()

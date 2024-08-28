@@ -1,3 +1,4 @@
+import allure
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -16,4 +17,5 @@ class AlertSuccessElement:
 
     @property
     def shopping_cart(self):
-        return self.alert.find_element(*self.SHOPPING_CART_LINK)
+        with allure.step("Поиск таблички с добавление товара в корзину"):
+            return self.alert.find_element(*self.SHOPPING_CART_LINK)

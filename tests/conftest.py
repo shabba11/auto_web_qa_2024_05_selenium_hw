@@ -3,53 +3,23 @@ import os
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from page_objects.administration_page import AdministrationPage as AP
+from page_objects.base_page import BasePage
+from selenium.webdriver.common.by import By
+from page_objects.registration_page import RegistrationPage as RP
 
 
 def pytest_addoption(parser):
     parser.addoption("--browser", default="chrome")
     parser.addoption("--drivers", default=os.path.expanduser("~/Downloads/drivers"))
     parser.addoption("--base-url", default="http://localhost:80")
-    parser.addoption("--url-catalog", default="http://localhost:80/en-gb/catalog")
-    parser.addoption("--url-product", default="http://localhost:80/en-gb/product")
-    parser.addoption("--url-administration", default="http://localhost:80/administration")
-    parser.addoption("--url-registration", default="http://localhost:80/index.php?route=account/register")
     parser.addoption("--opencart-username", default="user")
     parser.addoption("--opencart-password", default="bitnami")
 
 
-@pytest.fixture(scope="session")
-def base_url(request):
-    return request.config.getoption("--base-url")
-
-
-@pytest.fixture(scope="session")
-def url_catalog(request):
-    return request.config.getoption("--url-catalog")
-
-
-@pytest.fixture(scope="session")
-def url_product(request):
-    return request.config.getoption("--url-product")
-
-
-@pytest.fixture(scope="function")
-def login_administration(request):
-    return {'login': request.config.getoption("--opencart-username"),
-            'password': request.config.getoption("--opencart-password")}
-
-
-@pytest.fixture(scope="session")
-def url_administration(request):
-    return request.config.getoption("--url-administration")
-
-
-@pytest.fixture(scope="session")
-def url_registration(request):
-    return request.config.getoption("--url-registration")
-
-
 @pytest.fixture
 def browser(request):
+    url = request.config.getoption("--base-url")
     browser = request.config.getoption("--browser")
     drivers = request.config.getoption("--drivers")
 
@@ -70,4 +40,62 @@ def browser(request):
 
     request.addfinalizer(driver.quit)
 
+    driver.maximize_window()
+
+    driver.get(url)
+
     return driver
+
+
+@pytest.fixture(scope="function")
+def login_administration(request, browser):
+    AP(browser)
+
+    username = BasePage(browser).get_element((By.ID, "input-username"))
+    username.send_keys(request.config.getoption("--opencart-username"))
+
+    password = BasePage(browser).get_element((By.ID, "input-password"))
+    password.send_keys(request.config.getoption("--opencart-password"))
+
+    BasePage(browser).get_element((By.CSS_SELECTOR, "button.btn.btn-primary")).click()
+
+    BasePage(browser).get_element((By.ID, "nav-profile"))
+
+
+@pytest.fixture(scope="function")
+def user_registration(request, browser):
+    emails = []
+
+    def registration(firstname, lastname, e_mail, password):
+        RP(browser)
+
+        BasePage(browser).input_value((By.ID, 'input-firstname'), texts=firstname)
+        BasePage(browser).input_value((By.ID, "input-lastname"), texts=lastname)
+        BasePage(browser).input_value((By.ID, "input-email"), texts=e_mail)
+        BasePage(browser).input_value((By.ID, "input-password"), texts=password)
+
+        BasePage(browser).click((By.XPATH, '//*[@id="form-register"]/div/div/input'))
+        BasePage(browser).click((By.XPATH, '//*[@id="form-register"]/div/button'))
+
+        BasePage(browser).get_element((By.PARTIAL_LINK_TEXT, 'Your Account Has Been Created!'))
+
+        emails.append(e_mail)
+
+    yield registration
+
+    browser.get(url=request.config.getoption("--base-url") + AP.URL_ADMINISTRATION)
+
+    username = BasePage(browser).get_element((By.ID, "input-username"))
+    username.send_keys(request.config.getoption("--opencart-username"))
+
+    password = BasePage(browser).get_element((By.ID, "input-password"))
+    password.send_keys(request.config.getoption("--opencart-password"))
+
+    BasePage(browser).get_element((By.CSS_SELECTOR, "button.btn.btn-primary")).click()
+    BasePage(browser).click((By.XPATH, '//*[@id="menu-customer"]'))
+    BasePage(browser).click((By.XPATH, '//*[@id="collapse-5"]/li[1]/a'))
+
+    BasePage(browser).click((By.XPATH, '//*[@id="form-customer"]/div[1]/table/thead/tr/td[1]/input'))
+    BasePage(browser).click((By.XPATH, '//*[@id="content"]/div[1]/div/div/button[2]'))
+
+    browser.switch_to.alert.accept()

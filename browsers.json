@@ -1,0 +1,13 @@
+{
+  "chrome": {
+    "default": "latest",
+    "versions": {
+      "latest": {
+        "image": "selenoid/vnc_chrome:128.0",
+        "port": "4444",
+        "path": "/wd/hub",
+        "shm_size": "2g"
+      }
+    }
+  }
+}

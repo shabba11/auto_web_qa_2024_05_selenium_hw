@@ -1,9 +1,4 @@
-import datetime
-import json
-
 import pytest
-import os
-import logging
 import allure
 
 from selenium import webdriver
@@ -12,15 +7,20 @@ from page_objects.administration_page import AdministrationPage as AP
 from page_objects.base_page import BasePage
 from selenium.webdriver.common.by import By
 from page_objects.registration_page import RegistrationPage as RP
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.safari.options import Options as SafariOptions
 
 
 def pytest_addoption(parser):
-    parser.addoption("--browser", default="chrome")
-    parser.addoption("--drivers", default=os.path.expanduser("~/Downloads/drivers"))
-    parser.addoption("--base-url", default="http://localhost:80")
-    parser.addoption("--opencart-username", default="user")
-    parser.addoption("--opencart-password", default="bitnami")
-    parser.addoption("--log_level", action="store", default="INFO")
+    parser.addoption("--browser", action="store", default="chrome")
+    parser.addoption("--executor", action="store", default="127.0.0.1")
+    parser.addoption("--mobile", action="store_true")
+    parser.addoption("--base-url", default="http://localhost:8092")
+    parser.addoption("--vnc", action="store_true")
+    parser.addoption("--logs", action="store_true")
+    parser.addoption("--bv")
+    parser.addoption("--local", default=False)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -32,73 +32,69 @@ def pytest_runtest_makereport(item):
     else:
         item.status = 'passed'
 
-
 @pytest.fixture
 def browser(request):
+    local = request.config.getoption("--local")
     url = request.config.getoption("--base-url")
     browser = request.config.getoption("--browser")
-    drivers = request.config.getoption("--drivers")
-    log_level = request.config.getoption("--log_level")
+    executor = request.config.getoption("--executor")
+    vnc = request.config.getoption("--vnc")
+    version = request.config.getoption("--bv")
+    logs = request.config.getoption("--logs")
+    mobile = request.config.getoption("--mobile")
 
-    logger = logging.getLogger(request.node.name)
-    file_handler = logging.FileHandler(f"logs/{request.node.name}.log")
-    file_handler.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
-    logger.addHandler(file_handler)
-    logger.setLevel(level=log_level)
-
-    logger.info("===> Test %s started at %s" % (request.node.name, datetime.datetime.now()))
+    executor_url = f"http://{executor}:4444/wd/hub"
 
     if browser == "chrome":
+        options = ChromeOptions()
         service = Service()
-        driver = webdriver.Chrome(service=service)
-    elif browser == "yandex":
-        options = webdriver.ChromeOptions()
-        service = Service(executable_path=os.path.join(drivers, "yandexdriver"))
-        options.binary_location = "/usr/bin/yandex-browser"
-        driver = webdriver.Chrome(service=service, options=options)
+        if local:
+            driver = webdriver.Chrome(service=service)
     elif browser == "firefox":
-        driver = webdriver.Firefox()
+        options = FirefoxOptions()
+        if local:
+            driver = webdriver.Firefox()
     elif browser == "safari":
-        driver = webdriver.Safari()
+        options = SafariOptions()
+        if local:
+            driver = webdriver.Safari()
     else:
         raise Exception("Driver not supported")
 
-    allure.attach(
-        name=driver.session_id,
-        body=json.dumps(driver.capabilities, indent=4, ensure_ascii=False),
-        attachment_type=allure.attachment_type.JSON)
+    caps = {
+        "browserName": browser,
+        "browserVersion": version,
+        "selenoid:options": {
+            "enableVNC": vnc,
+            "name": request.node.name,
+            "screenResolution": "1280x2000",
+            "enableLog": logs,
+            "timeZone": "Europe/Moscow",
+            "env": ["LANG=ru_RU.UTF-8", "LANGUAGE=ru:en", "LC_ALL=ru_RU.UTF-8"]
+        },
+        "acceptInsecureCerts": True,
+    }
 
-    driver.log_level = log_level
-    driver.logger = logger
-    driver.test_name = request.node.name
+    for k, v in caps.items():
+        options.set_capability(k, v)
 
-    logger.info("Browser %s started" % browser)
+    if not local:
+        driver = webdriver.Remote(
+            command_executor=executor_url,
+            options=options
+        )
 
-    def fin():
-        driver.quit()
-        logger.info("===> Test %s finished at %s" % (request.node.name, datetime.datetime.now()))
-
-    request.addfinalizer(fin)
-
-    driver.maximize_window()
+    if not mobile:
+        driver.maximize_window()
 
     driver.get(url)
 
-    yield driver
+    def finalizer():
+        driver.quit()
 
-    if request.node.status == "failed":
-        allure.attach(
-            name="failure_screenshot",
-            body=driver.get_screenshot_as_png(),
-            attachment_type=allure.attachment_type.PNG
-        )
-        allure.attach(
-            name="page_source",
-            body=driver.page_source,
-            attachment_type=allure.attachment_type.HTML
-        )
+    request.addfinalizer(finalizer)
 
-    driver.quit()
+    return driver
 
 
 @pytest.fixture(scope="function")
